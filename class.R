@@ -1,5 +1,5 @@
 
-# S4 class file for Shekhar et al., "Comprehensive classification of retinal bipolar cells using single-cell transcriptomics"
+# S4 class file for Shekhar et al., "Comprehensive classification of retinal bipolar cells using single-cell transcriptomics", Cell, 2016
 
 # Required packages
 require(Matrix)
@@ -21,9 +21,13 @@ setGeneric("initialize", function(object,  min.cells=3, min.genes=2500, min.coun
 setMethod("initialize","scDrop",
           function(object,  min.cells=3, min.genes=2500, min.counts=10, scale=TRUE, center=TRUE, maxexpr=5000,...) {
             print("Initializing S4 object")
+            
+            # Cell filtering
             num.genes = colSums(object@count.data > 0); names(num.genes) = colnames(object@count.data)
             cells.use = names(num.genes[which(num.genes>min.genes)])
             temp.data=object@count.data[,cells.use]
+            
+            # Gene filtering
             num.cells= rowSums(temp.data > 0)            
             genes.use=names(num.cells[which(num.cells>min.cells)])
             genes.use1 = names(which(rowSums(object@count.data[,cells.use]) > min.counts))
@@ -42,6 +46,7 @@ setMethod("initialize","scDrop",
             rm(temp.data)
             object@data=as.data.frame(log(norm_counts+ 1))
 
+            # Group IDs for each cell
             object@group=factor(unlist(lapply(colnames(object@data),function(x) strsplit(x,"_")[[1]][1] )))
             names(object@group)=colnames(object@data)
             
@@ -176,6 +181,7 @@ multiplotList <- function(plots, file, cols=1, layout=NULL) {
 rp=function() {par(mfrow=c(1,1))}
 
 
+# Graph clustering
 setGeneric("doGraph_clustering", function(object,cells.use=NULL,pcs.use=1:10, num.nn=30, do.jaccard=FALSE, method="Louvain") standardGeneric("doGraph_clustering"))
 setMethod("doGraph_clustering", "scDrop", function(object,cells.use=NULL,pcs.use=1:10,num.nn=30, do.jaccard=FALSE, method="Louvain") {
   
@@ -220,6 +226,7 @@ setMethod("doGraph_clustering", "scDrop", function(object,cells.use=NULL,pcs.use
 }
 )
 
+# Build a nearest neighbor graph with or without edge weights, and return an adjacency matrix
 get_edges=function(X,nn=30,do.jaccard=TRUE) {
   nearest=nn2(X,X,k=nn+1, treetype = "bd", searchtype="priority")
   print("Found nearest neighbors")
@@ -255,7 +262,7 @@ get_edges=function(X,nn=30,do.jaccard=TRUE) {
   
 }
 
-#Visualize single cells in tSNE plot
+#Visualize single cells as clusters in a tSNE plot
 plot.tsne=function(object) {
   
   cols=rainbow(length(levels(object@group))); cols[1]="lightgrey"
@@ -268,6 +275,7 @@ plot.tsne=function(object) {
 
 }
 
+# scatter plot coloring genes by their expression levels
 setGeneric("gene.expression.scatter", function(object, genes,cells.use=NULL,cols.use=terrain.colors(10),pch.use=16,nCol=NULL, xlim=NULL, ylim=NULL) standardGeneric("gene.expression.scatter"))
 setMethod("gene.expression.scatter", "scDrop", 
           function(object, genes,cells.use=NULL,cols.use=terrain.colors( 10),pch.use=16,nCol=NULL, xlim=NULL, ylim=NULL) {
@@ -304,6 +312,8 @@ setMethod("gene.expression.scatter", "scDrop",
           }
 )
 
+# Binomial test to evaluate differentially expressed genes between two clusters
+# if only one cluster is provided, then it will be compared against the rest of the cells
 setGeneric("markers.binom", function(object, clust.1,clust.2=NULL,effect.size=log(2), TPM.mat=NULL, Count.mat=NULL) standardGeneric("markers.binom"))
 setMethod("markers.binom", "scDrop",
           function(object, clust.1,clust.2=NULL,effect.size=log(2), TPM.mat=NULL, Count.mat=NULL) {
@@ -428,8 +438,7 @@ setMethod("merge.clusters.DE", "scDrop",
                   #print(head(subset(marker.pass, log.effect > 0),5))
                   #print(head(subset(marker.pass, log.effect < 0),5))
                   
-                  #num.de.genes = min(nrow(subset(marker.pass, log.effect > 0)), nrow(subset(marker.pass, log.effect < 0)))
-                  num.de.genes = nrow(marker.pass)
+                  num.de.genes = 2*min(nrow(subset(marker.pass, log.effect > 0)), nrow(subset(marker.pass, log.effect < 0)))
                   pass.thresh[i,j]=num.de.genes; pass.thresh[j,i]=pass.thresh[i,j];
                   
                 }
@@ -453,7 +462,7 @@ setMethod("merge.clusters.DE", "scDrop",
             rownames(min.val.ind) = 1:nrow(min.val.ind)
             
             merge.ind=-1
-            while(min.val < min.de.genes) {
+            while(min.val <= min.de.genes) {
               merge.ind=merge.ind+1
               
               #In case of ties, merge clusters that are closest in PC space
@@ -461,7 +470,7 @@ setMethod("merge.clusters.DE", "scDrop",
               ind.min=which.min(clust.dists[cbind(min.val.ind$row, min.val.ind$col)])
               test.1 = min.val.ind[ind.min,]$row; test.2 = min.val.ind[ind.min,]$col
               
-              if (pass.thresh[test.1,test.2]< min.de.genes) {
+              if (pass.thresh[test.1,test.2]<= min.de.genes) {
                 object@group[which(object@group==test.2)]=test.1
                 pass.thresh = pass.thresh[-test.2,]; pass.thresh = pass.thresh[,-test.2]
                 old.group.levels = as.numeric(levels(object@group))
@@ -486,8 +495,9 @@ setMethod("merge.clusters.DE", "scDrop",
                   P2 = p.adjust(marker$pval, method="fdr")
                   marker$pval = P2
                   marker.pass=subset(marker,pval<pval.cutoff)
-                  #pass.thresh[test.1,i]=min(nrow(subset(marker.pass, log.effect>0)),nrow(subset(marker.pass, log.effect<0))); pass.thresh[i,test.1]=pass.thresh[test.1,i];
-                  pass.thresh[test.1,i]=nrow(marker.pass); pass.thresh[i,test.1]=pass.thresh[test.1,i];
+                  pass.thresh[test.1,i]=2*min(nrow(subset(marker.pass, log.effect>0)),nrow(subset(marker.pass, log.effect<0))); pass.thresh[i,test.1]=pass.thresh[test.1,i];
+                  #pass.thresh[test.1,i]=nrow(marker.pass); 
+                  pass.thresh[i,test.1]=pass.thresh[test.1,i];
                   
                 }
                 
