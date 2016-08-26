@@ -6,6 +6,8 @@ This GitHub page maintains documentation and code to enable interested readers t
 
 The key steps, implemented in the R statistical language, are summarized in the tutorial file `BCanalysis.pdf`. Users are recommended to install the RStudio IDE to follow the tutorial.  The PDF describes R packages that users will have to install to get started. Users will require `class.R`, which contains essential code, and an Rdata file `bipolar_data_Cell2016.Rdata` to carry out the steps. The Rdata file can be downloaded at the following link,
 
-URL ....
+http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE81904
+
+Please download `GSE81904_bipolar_data_Cell2016.Rdata.gz`, unzip it and rename it as `bipolar_data_Cell2016.Rdata`. 
 
 Questions and comments on this code, or on additional computational aspects of the paper can be e-mailed to karthik@broadinstitute.org.
