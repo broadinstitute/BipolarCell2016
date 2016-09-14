@@ -4,6 +4,7 @@
 # Required packages
 require(Matrix)
 require(igraph)
+require(gmodels)
 require(ggplot2)
 require(sva)
 require(RANN)
