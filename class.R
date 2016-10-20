@@ -90,7 +90,7 @@ setMethod("doPCA", "scDrop",
             genes.use = pc.genes[pc.genes.var>0]
             pc.data = data.use[genes.use,]
             
-            pca.obj = fast.prcomp(t(pc.data),center=FALSE, scale=FALSE,...)
+            pca.obj = fast.prcomp(t(pc.data),center=FALSE, scale=FALSE)
             object@pca.scores=data.frame(pca.obj$x[,1:pcs.store])
             object@pca.load=data.frame(pca.obj$rotation[,1:pcs.store])
             return(object)
